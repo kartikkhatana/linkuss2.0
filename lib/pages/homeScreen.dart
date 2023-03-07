@@ -19,6 +19,9 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+bool liked = false;
+var curuser = FirebaseAuth.instance.currentUser!.uid;
+
 //test
 class _HomeScreenState extends State<HomeScreen> {
   List<Widget> postList = [
@@ -174,7 +177,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           Map<String, dynamic> post = parseDoc(
                               snapshot.data['postDetails'][index].data());
                           return postItem(
-                              snapshot.data['clubDetails'][post['postBy']], post);
+                              snapshot.data['clubDetails'][post['postBy']],
+                              post);
                         },
                         itemCount: snapshot.data['postDetails'].length,
                         physics: const BouncingScrollPhysics(),
@@ -206,6 +210,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget postItem(final clubDetails, final postDetails) {
     final likedProvider = StateProvider.autoDispose((ref) => false);
+    Map<String, dynamic> info = {};
+    info['postDetails'] = postDetails.docs;
+    int n = info['likeCount'];
+    for (int i = 0; i < n; i++) {
+      if (info['likedby'][i] == curuser) {
+        liked = true;
+        break;
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       child: Container(
@@ -319,7 +333,48 @@ class _HomeScreenState extends State<HomeScreen> {
                           Consumer(
                             builder: (context, ref, child) {
                               return IconButton(
-                                onPressed: () {
+                                onPressed: () async {
+                                  DocumentReference user = FirebaseFirestore
+                                      .instance
+                                      .collection('Users')
+                                      .doc(curuser);
+                                  if (!liked) {
+                                    FirebaseFirestore.instance
+                                        .collection('Posts')
+                                        .doc(postDetails['UID'])
+                                        .update({
+                                      'likedby':
+                                          FieldValue.arrayUnion([curuser])
+                                    });
+                                    FirebaseFirestore.instance
+                                        .collection('Posts')
+                                        .doc(postDetails['UID'])
+                                        .update({
+                                      'likeCount': FieldValue.increment(1)
+                                    });
+                                    await user.update({
+                                      'likedPosts': FieldValue.arrayUnion(
+                                          [postDetails['UID']])
+                                    });
+                                  } else {
+                                    FirebaseFirestore.instance
+                                        .collection('Posts')
+                                        .doc(postDetails['UID'])
+                                        .update({
+                                      'likedby':
+                                          FieldValue.arrayRemove([curuser])
+                                    });
+                                    FirebaseFirestore.instance
+                                        .collection('Posts')
+                                        .doc(postDetails['UID'])
+                                        .update({
+                                      'likeCount': FieldValue.increment(-1)
+                                    });
+                                    await user.update({
+                                      'likedPosts': FieldValue.arrayRemove(
+                                          [postDetails['UID']])
+                                    });
+                                  }
                                   ref.read(likedProvider.notifier).state =
                                       !ref.read(likedProvider);
                                 },
