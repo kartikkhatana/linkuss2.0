@@ -47,22 +47,30 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, dynamic> data = {};
     QuerySnapshot postDetails;
     print(CurrentUser.following.toString());
-    if (!sort) {
-      postDetails = await FirebaseFirestore.instance
+    // if (!sort) {
+      
+    // } else {
+    //   if (CurrentUser.following.isNotEmpty) {
+    //     postDetails = await FirebaseFirestore.instance
+    //         .collection("Posts")
+    //         .where("filter", isEqualTo: CurrentUser.college)
+    //         .where("postBy", whereIn: CurrentUser.following)
+    //         .get();
+    //     data['postDetails'] = postDetails.docs;
+    //   } else {
+    //     postDetails = await FirebaseFirestore.instance
+    //         .collection("Posts")
+    //         .where("filter", isEqualTo: CurrentUser.college)
+    //         .get();
+    //     data['postDetails'] = postDetails.docs;
+    //   }
+    // }
+
+    postDetails = await FirebaseFirestore.instance
           .collection("Posts")
           .where("filter", isEqualTo: CurrentUser.college)
           .get();
       data['postDetails'] = postDetails.docs;
-    } else {
-      try {
-        postDetails = await FirebaseFirestore.instance
-            .collection("Posts")
-            .where("filter", isEqualTo: CurrentUser.college)
-            .where("postBy", whereIn: CurrentUser.following)
-            .get();
-        data['postDetails'] = postDetails.docs;
-      } catch (e) {}
-    }
 
     // postDetails = await FirebaseFirestore.instance
     //     .collection("Posts")
