@@ -77,16 +77,20 @@ class _ExploreClubsState extends State<ExploreClubs> {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.done) {
                       if (snapshot.hasData) {
-                        return Padding(
+                        return snapshot.data.length != 0 ? Padding(
                           padding: EdgeInsets.symmetric(horizontal: 10),
                           child: ListView.builder(
                               itemCount: snapshot.data.length,
                               itemBuilder: (context, index) {
                                 return clubItem(snapshot.data[index]);
                               }),
+                        ) : Center(
+                          child: Text("No Clubs Found"),
                         );
                       } else {
-                        return Container();
+                        return Center(
+                          child: Text('No Clubs Found'),
+                        );
                       }
                     } else if (snapshot.connectionState ==
                         ConnectionState.waiting) {
@@ -95,7 +99,7 @@ class _ExploreClubsState extends State<ExploreClubs> {
                       );
                     } else {
                       return Center(
-                        child: Text(''),
+                        child: Text('Something went wrong'),
                       );
                     }
                   }),

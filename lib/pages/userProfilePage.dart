@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:linkuss/pages/commentpage.dart';
 import 'package:linkuss/pages/login.dart';
 import 'package:linkuss/utils/colors.dart';
 import 'package:linkuss/utils/constants.dart';
@@ -27,7 +28,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
 
   final tabProvider = StateProvider.autoDispose((ref) => 0);
   Future? data;
-
+  QuerySnapshot? posts;
   @override
   void initState() {
     super.initState();
@@ -46,7 +47,22 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
         .collection("Users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get();
-    return Map<String, dynamic>.from(data.data() as Map<String, dynamic>);
+    final parsed =
+        Map<String, dynamic>.from(data.data() as Map<String, dynamic>);
+    print(parsed['likedPosts']);
+    await getLikedPosts(List<String>.from(parsed['likedPosts'] ?? []));
+    return parsed;
+  }
+
+  Future getLikedPosts(List<String> liked) async {
+    try {
+      posts = await FirebaseFirestore.instance
+          .collection("Posts")
+          .where("UID", whereIn: liked)
+          .get();
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -95,7 +111,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                         followStyleButton(250,
                             callback: () {},
                             title:
-                                '${List.from(snapshot.data['following']).length} Societies'),
+                                '${snapshot.data['following'] != null ? List.from(snapshot.data['following']).length : 0} Societies'),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Container(
@@ -167,19 +183,39 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    itemCount: 18,
+                                    itemCount:
+                                        posts != null ? posts!.docs.length : 0,
                                     gridDelegate:
                                         const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
+                                      crossAxisCount: 2,
                                       crossAxisSpacing: 6,
                                       mainAxisSpacing: 6,
                                     ),
                                     itemBuilder: (context, index) {
-                                      return Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.blueGrey,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                      final data = Map<String, dynamic>.from(
+                                          posts!.docs[index].data()
+                                              as Map<String, dynamic>);
+                                      return InkWell(
+                                        onTap: () {
+                                          Navigator.push(
+                                           context,
+                                           MaterialPageRoute(
+                                           builder: (context) => Commentsection(data)));
+                                        },
+                                        child: Container(
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Image.network(
+                                              data['image'],
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blueGrey,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
                                         ),
                                       );
                                     }),
