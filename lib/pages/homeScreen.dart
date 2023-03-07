@@ -54,12 +54,14 @@ class _HomeScreenState extends State<HomeScreen> {
           .get();
       data['postDetails'] = postDetails.docs;
     } else {
-      postDetails = await FirebaseFirestore.instance
-          .collection("Posts")
-          .where("filter", isEqualTo: CurrentUser.college)
-          .where("postBy", whereIn: CurrentUser.following)
-          .get();
-      data['postDetails'] = postDetails.docs;
+      try {
+        postDetails = await FirebaseFirestore.instance
+            .collection("Posts")
+            .where("filter", isEqualTo: CurrentUser.college)
+            .where("postBy", whereIn: CurrentUser.following)
+            .get();
+        data['postDetails'] = postDetails.docs;
+      } catch (e) {}
     }
 
     // postDetails = await FirebaseFirestore.instance
@@ -160,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(
               Icons.people,
-              color: sort ? MyColors.primary : Colors.black ,
+              color: sort ? MyColors.primary : Colors.black,
             ),
             onPressed: () {
               setState(() {
@@ -184,7 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-         
           Expanded(
               child: FutureBuilder(
                   future: loadHomePageData(),
