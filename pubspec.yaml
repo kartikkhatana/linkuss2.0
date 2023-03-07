@@ -46,6 +46,7 @@ dependencies:
   package_info_plus: ^1.4.3+1
   device_info_plus: ^4.1.2
   date_time_picker: ^2.1.0
+  shared_preferences: ^2.0.18
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:linkuss/currentUser.dart';
 import 'package:linkuss/pages/clubDetails.dart';
 import 'package:linkuss/pages/commentpage.dart';
 import 'package:linkuss/pages/explorepage.dart';
@@ -27,15 +29,13 @@ class _HomeScreenState extends State<HomeScreen> {
     const PostCard(),
     const PostCard(),
   ];
-  //hello
-  DocumentReference ref =
-      FirebaseFirestore.instance.collection('Colleges').doc("USS");
-
   Future loadHomePageData() async {
     Map<String, dynamic> data = {};
 
-    QuerySnapshot postDetails =
-        await FirebaseFirestore.instance.collection("Posts").get();
+    QuerySnapshot postDetails = await FirebaseFirestore.instance
+        .collection("Posts")
+        .where("filter", isEqualTo: CurrentUser.college)
+        .get();
     data['postDetails'] = postDetails.docs;
 
     //get list of the uids of the clubs
@@ -47,9 +47,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     //get club details from post
-    QuerySnapshot clubDetails =
-        await ref.collection("Clubs").where('UID', whereIn: postBy).get();
-    data['clubDetails'] = clubDetails.docs;
+    QuerySnapshot clubDetails = await FirebaseFirestore.instance
+        .collection("Societies")
+        .where('UID', whereIn: postBy)
+        .where("college", isEqualTo: CurrentUser.college)
+        .get();
+    Map<String, dynamic> clubswithUID = {};
+
+    clubDetails.docs.forEach((element) {
+      final data = parseDoc(element.data());
+      clubswithUID[data['UID']] = data;
+    });
+
+    print("clubs" + clubswithUID.toString());
+    print("clubs" + clubswithUID['VpW8eCc4QwsM9yro7QAx'].toString());
+
+    data['clubDetails'] = clubswithUID;
 
     if (clubDetails.docs.isNotEmpty && postDetails.docs.isNotEmpty) {
       return data;
@@ -62,7 +75,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    getFilterData();
     // loadClubData();
+  }
+
+  Future getFilterData() async {
+    QuerySnapshot clubDetails = await FirebaseFirestore.instance
+        .collection("Posts")
+        .where('filter', isEqualTo: CurrentUser.college)
+        .get();
+
+    return clubDetails.docs;
   }
 
   // List<Widget> storyList = [
@@ -150,9 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           Map<String, dynamic> post = parseDoc(
                               snapshot.data['postDetails'][index].data());
-                          Map<String, dynamic> club = parseDoc(
-                              snapshot.data['clubDetails'][index].data());
-                          return postItem(club, post);
+                          return postItem(
+                              snapshot.data['clubDetails'][post['postBy']], post);
                         },
                         itemCount: snapshot.data['postDetails'].length,
                         physics: const BouncingScrollPhysics(),
@@ -162,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               } else {
                 return Center(
-                  child: Text('Error loading dataaaa'),
+                  child: Text('No Posts Found'),
                 );
               }
             } else if (snapshot.connectionState == ConnectionState.waiting) {
@@ -239,7 +261,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      
                     ],
                   ),
                 ],
