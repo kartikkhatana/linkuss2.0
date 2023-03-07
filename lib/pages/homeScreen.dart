@@ -29,15 +29,44 @@ class _HomeScreenState extends State<HomeScreen> {
     const PostCard(),
     const PostCard(),
   ];
-  var curuser = FirebaseAuth.instance.currentUser!.uid;
-  Future loadHomePageData() async {
-    Map<String, dynamic> data = {};
 
-    QuerySnapshot postDetails = await FirebaseFirestore.instance
-        .collection("Posts")
-        .where("filter", isEqualTo: CurrentUser.college)
+  bool sort = true;
+  Future<List<String>> updateFollowingClubs() async {
+    DocumentSnapshot data = await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
         .get();
-    data['postDetails'] = postDetails.docs;
+    Map<String, dynamic> parsed =
+        Map<String, dynamic>.from(data.data() as Map<String, dynamic>);
+    print(List.from(parsed['following'] ?? []));
+    return List<String>.from(parsed['following'] ?? []);
+  }
+
+  Future loadHomePageData() async {
+    CurrentUser.following = await updateFollowingClubs();
+    Map<String, dynamic> data = {};
+    QuerySnapshot postDetails;
+    print(CurrentUser.following.toString());
+    if (!sort) {
+      postDetails = await FirebaseFirestore.instance
+          .collection("Posts")
+          .where("filter", isEqualTo: CurrentUser.college)
+          .get();
+      data['postDetails'] = postDetails.docs;
+    } else {
+      postDetails = await FirebaseFirestore.instance
+          .collection("Posts")
+          .where("filter", isEqualTo: CurrentUser.college)
+          .where("postBy", whereIn: CurrentUser.following)
+          .get();
+      data['postDetails'] = postDetails.docs;
+    }
+
+    // postDetails = await FirebaseFirestore.instance
+    //     .collection("Posts")
+    //     .where("filter", isEqualTo: CurrentUser.college)
+    //     .get();
+    // data['postDetails'] = postDetails.docs;
 
     //get list of the uids of the clubs
     List<String> postBy = [];
@@ -119,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 30,
           ),
         ),
+        centerTitle: true,
         title: const Text(
           "LINKUSS",
           style: TextStyle(
@@ -128,77 +158,97 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: <Widget>[
           IconButton(
+            icon: Icon(
+              Icons.people,
+              color: sort ? MyColors.primary : Colors.black ,
+            ),
+            onPressed: () {
+              setState(() {
+                sort = !sort;
+              });
+              //   prtin
+            },
+          ),
+          IconButton(
             icon: const Icon(
-              Icons.travel_explore,
-              color: MyColors.primary,
+              Icons.explore,
+              color: Colors.black,
             ),
             onPressed: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => ExploreClubs()));
             },
-          )
+          ),
         ],
         elevation: 0.0,
       ),
-      body: FutureBuilder(
-          future: loadHomePageData(),
-          builder: (context, AsyncSnapshot snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              if (snapshot.hasData) {
-                return Column(
-                  children: [
-                    SizedBox(height: 20),
-                    // Stories (just for show)
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(vertical: 10),
-                    //   // child: ListView.builder(
-                    //   //   itemBuilder: ((context, index) {
-                    //   //     return storyList[index];
-                    //   //   }),
-                    //   //   itemCount: postList.length,
-                    //   //   scrollDirection: Axis.horizontal,
-                    //   //   physics: const BouncingScrollPhysics(),
-                    //   // ),
-                    //   child: Row(
-                    //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    //     children: const [
-                    //       StoryAvatar(),
-                    //       StoryAvatar(),
-                    //       StoryAvatar(),
-                    //       StoryAvatar(),
-                    //     ],
-                    //   ),
-                    // ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemBuilder: (context, index) {
-                          Map<String, dynamic> post = parseDoc(
-                              snapshot.data['postDetails'][index].data());
-                          return postItem(
-                              snapshot.data['clubDetails'][post['postBy']],
-                              post);
-                        },
-                        itemCount: snapshot.data['postDetails'].length,
-                        physics: const BouncingScrollPhysics(),
-                      ),
-                    ),
-                  ],
-                );
-              } else {
-                return Center(
-                  child: Text('No Posts Found'),
-                );
-              }
-            } else if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            } else {
-              return Center(
-                child: Text('Error loading data'),
-              );
-            }
-          }),
+      body: Column(
+        children: [
+         
+          Expanded(
+              child: FutureBuilder(
+                  future: loadHomePageData(),
+                  builder: (context, AsyncSnapshot snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      if (snapshot.hasData) {
+                        return Column(
+                          children: [
+                            // Stories (just for show)
+                            // Padding(
+                            //   padding: const EdgeInsets.symmetric(vertical: 10),
+                            //   // child: ListView.builder(
+                            //   //   itemBuilder: ((context, index) {
+                            //   //     return storyList[index];
+                            //   //   }),
+                            //   //   itemCount: postList.length,
+                            //   //   scrollDirection: Axis.horizontal,
+                            //   //   physics: const BouncingScrollPhysics(),
+                            //   // ),
+                            //   child: Row(
+                            //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            //     children: const [
+                            //       StoryAvatar(),
+                            //       StoryAvatar(),
+                            //       StoryAvatar(),
+                            //       StoryAvatar(),
+                            //     ],
+                            //   ),
+                            // ),
+                            Expanded(
+                              child: ListView.builder(
+                                itemBuilder: (context, index) {
+                                  Map<String, dynamic> post = parseDoc(snapshot
+                                      .data['postDetails'][index]
+                                      .data());
+                                  return postItem(
+                                      snapshot.data['clubDetails']
+                                          [post['postBy']],
+                                      post);
+                                },
+                                itemCount: snapshot.data['postDetails'].length,
+                                physics: const BouncingScrollPhysics(),
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        return Center(
+                          child: Text('No Posts Found'),
+                        );
+                      }
+                    } else if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    } else {
+                      return Center(
+                        child: Text('Error loading data'),
+                      );
+                    }
+                  }))
+        ],
+      ),
     );
   }
 

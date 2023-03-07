@@ -5,4 +5,5 @@ class CurrentUser {
   static String college = "";
   static String branch = "";
   static String enrollNo = "";
+  static List<String> following = [];
 }
