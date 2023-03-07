@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:linkuss/currentUser.dart';
 import 'package:linkuss/utils/colors.dart';
 import 'package:linkuss/utils/oldconstants.dart';
 import 'package:linkuss/widgets/textfields.dart';
@@ -32,17 +33,17 @@ class _CommentsectionState extends State<Commentsection> {
   String value = "";
   String timestamp = "";
   Future addCommment() async {
-    await FirebaseFirestore.instance.collection("empty").doc("USS").set(
+    await FirebaseFirestore.instance
+        .collection("Posts")
+        .doc(widget.data["UID"])
+        .update(
       {
-        "comments": {
-          FirebaseAuth.instance.currentUser!.uid: {
-            "value": value,
-            "name": FirebaseAuth.instance.currentUser!.displayName,
-            "timestamp": timestamp,
-          },
+        "comments.${FirebaseAuth.instance.currentUser!.uid}": {
+          "value": value,
+          "name": CurrentUser.fname,
+          "timestamp": timestamp,
         },
       },
-      SetOptions(merge: true),
     );
   }
 
