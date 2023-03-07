@@ -1,4 +1,7 @@
 // import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:linkuss/utils/colors.dart';
@@ -8,6 +11,10 @@ import 'package:linkuss/widgets/textfields.dart';
 import '../utils/constants.dart';
 
 List<comment> lt = List<comment>.generate(10, (index) => comment('p1'));
+// var commentMap = FirebaseFirestore.instance
+//     .collection("empty")
+//     .doc("USS")
+//     .collection("commets");
 
 // List<comment> lt =[
 //   comment('p1'),
@@ -21,6 +28,24 @@ class Commentsection extends StatefulWidget {
 }
 
 class _CommentsectionState extends State<Commentsection> {
+  final commentController = TextEditingController();
+  String value = "";
+  String timestamp = "";
+  Future addCommment() async {
+    await FirebaseFirestore.instance.collection("empty").doc("USS").set(
+      {
+        "comments": {
+          FirebaseAuth.instance.currentUser!.uid: {
+            "value": value,
+            "name": FirebaseAuth.instance.currentUser!.displayName,
+            "timestamp": timestamp,
+          },
+        },
+      },
+      SetOptions(merge: true),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,15 +190,32 @@ class _CommentsectionState extends State<Commentsection> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage('asset/Koala.jpg'),
-                        ),
+                        // CircleAvatar(
+                        //   radius: 20,
+                        //   backgroundImage: AssetImage('assets/ipulogo.png'),
+                        // ),
                         SizedBox(width: 10),
                         Expanded(
-                            child: SizedBox(
-                          child: primaryTextField(hint: "Enter comment"),
-                        ))
+                          child: SizedBox(
+                            child: primaryTextField(
+                                hint: "Enter comment",
+                                controller: commentController),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            value = commentController.text;
+                            timestamp = DateTime.now()
+                                .millisecondsSinceEpoch
+                                .toString();
+                            addCommment();
+                            commentController.clear();
+                          },
+                          icon: Icon(
+                            Icons.send,
+                            color: MyColors.primary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -200,10 +242,10 @@ class comment extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: AssetImage('asset/Koala.jpg'),
-                ),
+                // CircleAvatar(
+                //   radius: 20,
+                //   backgroundImage: AssetImage('assets/ipulogo.png'),
+                // ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Column(
