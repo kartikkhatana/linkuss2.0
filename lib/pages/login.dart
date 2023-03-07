@@ -9,6 +9,8 @@ import 'package:linkuss/bottombar.dart';
 import 'package:linkuss/currentUser.dart';
 import 'package:linkuss/pages/register.dart';
 import 'package:linkuss/pages/verifyemail.dart';
+import 'package:linkuss/services/sampleService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/buttons.dart';
 import '../widgets/textfields.dart';
@@ -20,9 +22,18 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+//hello world
+
 class _LoginPageState extends State<LoginPage> {
   final emailC = TextEditingController();
   final passC = TextEditingController();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,8 +92,23 @@ class _LoginPageState extends State<LoginPage> {
                 child: Align(
                     alignment: Alignment.center,
                     child: primaryButton(MediaQuery.of(context).size.width / 2,
-                        callback: () {
+                        callback: () async {
+                      // addComment();
                       login();
+                      // login();
+                      // getFilterData();
+                      // DocumentReference ref = FirebaseFirestore.instance
+                      //     .collection('Users')
+                      //     .doc("1WQQTgMZceMBRPNspSxU84OjoHG3");
+                      // DocumentSnapshot userDetails = await ref.get();
+                      // // print(userDetails.data());
+                      // DocumentReference ref = FirebaseFirestore.instance
+                      //     .collection('empty')
+                      //     .doc("USS");
+                      // ref.update({"marks" : FieldValue.increment(10)});
+                      // DocumentSnapshot userDetails = await ref.get();
+                      // Map<String,dynamic> data = userDetails.data() as Map<String,dynamic>;
+                      // print(data['something']);
                     }, title: "Login"))),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -106,6 +132,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Future addComment() async {}
+
+  Future getFilterData() async {
+    QuerySnapshot clubDetails = await FirebaseFirestore.instance
+        .collection("Posts")
+        .where('filter', isEqualTo: 'USAR')
+        .get();
+
+    print(clubDetails.docs);
+  }
+
   void login() async {
     if (emailC.text.isNotEmpty && passC.text.isNotEmpty) {
       if (emailC.text.toLowerCase().endsWith('ipu.ac.in')) {
@@ -124,15 +161,23 @@ class _LoginPageState extends State<LoginPage> {
                 jsonDecode(jsonEncode(userDetails.data()))
                     as Map<String, dynamic>;
             if (data['status'] == 1) {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => BottomBar()));
               CurrentUser.fname = data['fname'];
               CurrentUser.lname = data['lname'];
               CurrentUser.email = data['email'];
               CurrentUser.enrollNo = data['enrollNo'];
               CurrentUser.college = data['college'];
               CurrentUser.branch = data['branch'];
+              updateUserLocally(
+                  CurrentUser.fname,
+                  CurrentUser.lname,
+                  CurrentUser.email,
+                  CurrentUser.enrollNo,
+                  CurrentUser.college,
+                  CurrentUser.branch);
+              Navigator.pop(context);
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => BottomBar()));
+
               // if (userCredential.user!.emailVerified) {
               //   // UserDetails user = UserDetails(
               //   //     name: data['name'],

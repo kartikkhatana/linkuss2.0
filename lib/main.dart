@@ -6,6 +6,7 @@ import 'package:linkuss/pages/clubDetails.dart';
 import 'package:linkuss/pages/commentpage.dart';
 import 'package:linkuss/pages/homeScreen.dart';
 import 'package:linkuss/pages/login.dart';
+import 'package:linkuss/pages/splashScreen.dart';
 import 'package:linkuss/testingpage.dart';
 
 // void main() {
@@ -38,7 +39,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: LoginPage(),
+      home: SplashScreen(),
     );
   }
 }

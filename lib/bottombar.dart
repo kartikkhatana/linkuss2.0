@@ -77,7 +77,7 @@ class _BottomBarState extends State<BottomBar> {
               padding: EdgeInsets.symmetric(vertical: 10.0),
               child: SizedBox(
                   child: Icon(
-                Icons.explore,
+                Icons.timeline,
                 color: Colors.white,
               )),
             ),

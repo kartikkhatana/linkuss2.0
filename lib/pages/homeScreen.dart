@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:linkuss/currentUser.dart';
 import 'package:linkuss/pages/clubDetails.dart';
 import 'package:linkuss/pages/commentpage.dart';
 import 'package:linkuss/pages/explorepage.dart';
@@ -27,16 +29,44 @@ class _HomeScreenState extends State<HomeScreen> {
     const PostCard(),
     const PostCard(),
   ];
-  //hello
-  DocumentReference ref =
-      FirebaseFirestore.instance.collection('Colleges').doc("USS");
+
+  bool sort = true;
+  Future<List<String>> updateFollowingClubs() async {
+    DocumentSnapshot data = await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    Map<String, dynamic> parsed =
+        Map<String, dynamic>.from(data.data() as Map<String, dynamic>);
+    print(List.from(parsed['following'] ?? []));
+    return List<String>.from(parsed['following'] ?? []);
+  }
 
   Future loadHomePageData() async {
+    CurrentUser.following = await updateFollowingClubs();
     Map<String, dynamic> data = {};
+    QuerySnapshot postDetails;
+    print(CurrentUser.following.toString());
+    if (!sort) {
+      postDetails = await FirebaseFirestore.instance
+          .collection("Posts")
+          .where("filter", isEqualTo: CurrentUser.college)
+          .get();
+      data['postDetails'] = postDetails.docs;
+    } else {
+      postDetails = await FirebaseFirestore.instance
+          .collection("Posts")
+          .where("filter", isEqualTo: CurrentUser.college)
+          .where("postBy", whereIn: CurrentUser.following)
+          .get();
+      data['postDetails'] = postDetails.docs;
+    }
 
-    QuerySnapshot postDetails =
-        await FirebaseFirestore.instance.collection("Posts").get();
-    data['postDetails'] = postDetails.docs;
+    // postDetails = await FirebaseFirestore.instance
+    //     .collection("Posts")
+    //     .where("filter", isEqualTo: CurrentUser.college)
+    //     .get();
+    // data['postDetails'] = postDetails.docs;
 
     //get list of the uids of the clubs
     List<String> postBy = [];
@@ -47,9 +77,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     //get club details from post
-    QuerySnapshot clubDetails =
-        await ref.collection("Clubs").where('UID', whereIn: postBy).get();
-    data['clubDetails'] = clubDetails.docs;
+    QuerySnapshot clubDetails = await FirebaseFirestore.instance
+        .collection("Societies")
+        .where('UID', whereIn: postBy)
+        .where("college", isEqualTo: CurrentUser.college)
+        .get();
+    Map<String, dynamic> clubswithUID = {};
+
+    clubDetails.docs.forEach((element) {
+      final data = parseDoc(element.data());
+      clubswithUID[data['UID']] = data;
+    });
+
+    print("clubs" + clubswithUID.toString());
+    print("clubs" + clubswithUID['VpW8eCc4QwsM9yro7QAx'].toString());
+
+    data['clubDetails'] = clubswithUID;
 
     if (clubDetails.docs.isNotEmpty && postDetails.docs.isNotEmpty) {
       return data;
@@ -62,7 +105,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    getFilterData();
     // loadClubData();
+  }
+
+  Future getFilterData() async {
+    QuerySnapshot clubDetails = await FirebaseFirestore.instance
+        .collection("Posts")
+        .where('filter', isEqualTo: CurrentUser.college)
+        .get();
+
+    return clubDetails.docs;
   }
 
   // List<Widget> storyList = [
@@ -95,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 30,
           ),
         ),
+        centerTitle: true,
         title: const Text(
           "LINKUSS",
           style: TextStyle(
@@ -104,77 +158,97 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: <Widget>[
           IconButton(
+            icon: Icon(
+              Icons.people,
+              color: sort ? MyColors.primary : Colors.black ,
+            ),
+            onPressed: () {
+              setState(() {
+                sort = !sort;
+              });
+              //   prtin
+            },
+          ),
+          IconButton(
             icon: const Icon(
-              Icons.travel_explore,
-              color: MyColors.primary,
+              Icons.explore,
+              color: Colors.black,
             ),
             onPressed: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => ExploreClubs()));
             },
-          )
+          ),
         ],
         elevation: 0.0,
       ),
-      body: FutureBuilder(
-          future: loadHomePageData(),
-          builder: (context, AsyncSnapshot snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              if (snapshot.hasData) {
-                return Column(
-                  children: [
-                    SizedBox(height: 20),
-                    // Stories (just for show)
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(vertical: 10),
-                    //   // child: ListView.builder(
-                    //   //   itemBuilder: ((context, index) {
-                    //   //     return storyList[index];
-                    //   //   }),
-                    //   //   itemCount: postList.length,
-                    //   //   scrollDirection: Axis.horizontal,
-                    //   //   physics: const BouncingScrollPhysics(),
-                    //   // ),
-                    //   child: Row(
-                    //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    //     children: const [
-                    //       StoryAvatar(),
-                    //       StoryAvatar(),
-                    //       StoryAvatar(),
-                    //       StoryAvatar(),
-                    //     ],
-                    //   ),
-                    // ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemBuilder: (context, index) {
-                          Map<String, dynamic> post = parseDoc(
-                              snapshot.data['postDetails'][index].data());
-                          Map<String, dynamic> club = parseDoc(
-                              snapshot.data['clubDetails'][index].data());
-                          return postItem(club, post);
-                        },
-                        itemCount: snapshot.data['postDetails'].length,
-                        physics: const BouncingScrollPhysics(),
-                      ),
-                    ),
-                  ],
-                );
-              } else {
-                return Center(
-                  child: Text('Error loading dataaaa'),
-                );
-              }
-            } else if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            } else {
-              return Center(
-                child: Text('Error loading data'),
-              );
-            }
-          }),
+      body: Column(
+        children: [
+         
+          Expanded(
+              child: FutureBuilder(
+                  future: loadHomePageData(),
+                  builder: (context, AsyncSnapshot snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      if (snapshot.hasData) {
+                        return Column(
+                          children: [
+                            // Stories (just for show)
+                            // Padding(
+                            //   padding: const EdgeInsets.symmetric(vertical: 10),
+                            //   // child: ListView.builder(
+                            //   //   itemBuilder: ((context, index) {
+                            //   //     return storyList[index];
+                            //   //   }),
+                            //   //   itemCount: postList.length,
+                            //   //   scrollDirection: Axis.horizontal,
+                            //   //   physics: const BouncingScrollPhysics(),
+                            //   // ),
+                            //   child: Row(
+                            //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            //     children: const [
+                            //       StoryAvatar(),
+                            //       StoryAvatar(),
+                            //       StoryAvatar(),
+                            //       StoryAvatar(),
+                            //     ],
+                            //   ),
+                            // ),
+                            Expanded(
+                              child: ListView.builder(
+                                itemBuilder: (context, index) {
+                                  Map<String, dynamic> post = parseDoc(snapshot
+                                      .data['postDetails'][index]
+                                      .data());
+                                  return postItem(
+                                      snapshot.data['clubDetails']
+                                          [post['postBy']],
+                                      post);
+                                },
+                                itemCount: snapshot.data['postDetails'].length,
+                                physics: const BouncingScrollPhysics(),
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        return Center(
+                          child: Text('No Posts Found'),
+                        );
+                      }
+                    } else if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    } else {
+                      return Center(
+                        child: Text('Error loading data'),
+                      );
+                    }
+                  }))
+        ],
+      ),
     );
   }
 
@@ -183,7 +257,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget postItem(final clubDetails, final postDetails) {
-    final likedProvider = StateProvider.autoDispose((ref) => false);
+    List<String> likedby = List.from(postDetails['likedBy'] ?? []);
+    final likedProvider = StateProvider.autoDispose(
+        (ref) => likedby.contains(FirebaseAuth.instance.currentUser!.uid));
+    final likedCount =
+        StateProvider.autoDispose((ref) => postDetails['likeCount']);
+    // Map<String, dynamic> info = {};
+    // info['postDetails'] = postDetails.docs;
+    // int n = info['likeCount'];
+    // for (int i = 0; i < n; i++) {
+    //   if (info['likedby'][i] == curuser) {
+    //     liked = true;
+    //     break;
+    //   }
+    // }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       child: Container(
@@ -296,24 +384,86 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Consumer(
                             builder: (context, ref, child) {
-                              return IconButton(
-                                onPressed: () {
-                                  ref.read(likedProvider.notifier).state =
-                                      !ref.read(likedProvider);
-                                },
-                                icon: ref.watch(likedProvider)
-                                    ? FaIcon(
-                                        FontAwesomeIcons.solidHeart,
-                                        color: Colors.red,
-                                      )
-                                    : FaIcon(
-                                        FontAwesomeIcons.heart,
-                                        color: kiconColor,
-                                      ),
+                              return Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () async {
+                                      // FirebaseFirestore.instance
+                                      //     .collection('Posts')
+                                      //     .doc(postDetails['UID'])
+                                      //     .update({
+                                      //   'likedBy': FieldValue.arrayUnion([
+                                      //     FirebaseAuth.instance.currentUser!.uid
+                                      //   ])
+                                      // });
+                                      DocumentReference user = FirebaseFirestore
+                                          .instance
+                                          .collection('Users')
+                                          .doc(FirebaseAuth
+                                              .instance.currentUser!.uid);
+                                      if (!ref.read(likedProvider)) {
+                                        FirebaseFirestore.instance
+                                            .collection('Posts')
+                                            .doc(postDetails['UID'])
+                                            .update({
+                                          'likedBy': FieldValue.arrayUnion([
+                                            FirebaseAuth
+                                                .instance.currentUser!.uid
+                                          ])
+                                        });
+                                        FirebaseFirestore.instance
+                                            .collection('Posts')
+                                            .doc(postDetails['UID'])
+                                            .update({
+                                          'likeCount': FieldValue.increment(1)
+                                        });
+                                        user.update({
+                                          'likedPosts': FieldValue.arrayUnion(
+                                              [postDetails['UID']])
+                                        });
+                                        ref.read(likedCount.notifier).state +=
+                                            1;
+                                      } else {
+                                        FirebaseFirestore.instance
+                                            .collection('Posts')
+                                            .doc(postDetails['UID'])
+                                            .update({
+                                          'likedBy': FieldValue.arrayRemove([
+                                            FirebaseAuth
+                                                .instance.currentUser!.uid
+                                          ])
+                                        });
+                                        FirebaseFirestore.instance
+                                            .collection('Posts')
+                                            .doc(postDetails['UID'])
+                                            .update({
+                                          'likeCount': FieldValue.increment(-1)
+                                        });
+                                        user.update({
+                                          'likedPosts': FieldValue.arrayRemove(
+                                              [postDetails['UID']])
+                                        });
+                                        ref.read(likedCount.notifier).state -=
+                                            1;
+                                      }
+                                      ref.read(likedProvider.notifier).state =
+                                          !ref.read(likedProvider);
+                                    },
+                                    icon: ref.watch(likedProvider)
+                                        ? FaIcon(
+                                            FontAwesomeIcons.solidHeart,
+                                            color: Colors.red,
+                                          )
+                                        : FaIcon(
+                                            FontAwesomeIcons.heart,
+                                            color: kiconColor,
+                                          ),
+                                  ),
+                                  Text('${ref.watch(likedCount)}'),
+                                ],
                               );
                             },
                           ),
-                          Text('${postDetails['likeCount']}'),
                           IconButton(
                             onPressed: () {},
                             icon: FaIcon(
@@ -324,13 +474,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text('2K'),
                         ],
                       ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: FaIcon(
-                          FontAwesomeIcons.bookmark,
-                          color: kiconColor,
-                        ),
-                      ),
+                      // IconButton(
+                      //   onPressed: () {},
+                      //   icon: FaIcon(
+                      //     FontAwesomeIcons.bookmark,
+                      //     color: kiconColor,
+                      //   ),
+                      // ),
                     ],
                   )
                 ],
