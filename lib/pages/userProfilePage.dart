@@ -200,7 +200,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                                           Navigator.push(
                                            context,
                                            MaterialPageRoute(
-                                           builder: (context) => Commentsection(data)));
+                                           builder: (context) => Commentsection(data['UID'])));
                                         },
                                         child: Container(
                                           child: ClipRRect(

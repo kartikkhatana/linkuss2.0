@@ -31,12 +31,9 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
     clubPosts = getClubPosts();
   }
 
-  DocumentReference docref =
-      FirebaseFirestore.instance.collection('Colleges').doc("USS");
-
   Future getClubPosts() async {
     //get club details from post
-    QuerySnapshot data = await docref
+    QuerySnapshot data = await FirebaseFirestore.instance
         .collection("Posts")
         .where('postBy', isEqualTo: widget.data['UID']!)
         .get();
@@ -211,7 +208,7 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    Commentsection(snapshot.data[index])));
+                                    Commentsection(snapshot.data[index]['UID'])));
                       },
                       child: Container(
                         child: Image.network(

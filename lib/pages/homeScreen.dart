@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     QuerySnapshot postDetails;
     print(CurrentUser.following.toString());
     // if (!sort) {
-      
+
     // } else {
     //   if (CurrentUser.following.isNotEmpty) {
     //     postDetails = await FirebaseFirestore.instance
@@ -67,10 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
     // }
 
     postDetails = await FirebaseFirestore.instance
-          .collection("Posts")
-          .where("filter", isEqualTo: CurrentUser.college)
-          .get();
-      data['postDetails'] = postDetails.docs;
+        .collection("Posts")
+        .where("filter", isEqualTo: CurrentUser.college)
+        .get();
+    data['postDetails'] = postDetails.docs;
 
     // postDetails = await FirebaseFirestore.instance
     //     .collection("Posts")
@@ -85,6 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
       Map<dynamic, dynamic> decoded = Map<dynamic, dynamic>.from(data);
       postBy.add(decoded['postBy']);
     }
+
+    print(postBy.toString());
 
     //get club details from post
     QuerySnapshot clubDetails = await FirebaseFirestore.instance
@@ -167,18 +169,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: <Widget>[
-          IconButton(
-            icon: Icon(
-              Icons.people,
-              color: sort ? MyColors.primary : Colors.black,
-            ),
-            onPressed: () {
-              setState(() {
-                sort = !sort;
-              });
-              //   prtin
-            },
-          ),
+          // IconButton(
+          //   icon: Icon(
+          //     Icons.people,
+          //     color: sort ? MyColors.primary : Colors.black,
+          //   ),
+          //   onPressed: () {
+          //     setState(() {
+          //       sort = !sort;
+          //     });
+          //     //   prtin
+          //   },
+          // ),
           IconButton(
             icon: const Icon(
               Icons.explore,
@@ -270,7 +272,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final likedProvider = StateProvider.autoDispose(
         (ref) => likedby.contains(FirebaseAuth.instance.currentUser!.uid));
     final likedCount =
-        StateProvider.autoDispose((ref) => postDetails['likeCount']);
+        StateProvider.autoDispose((ref) => postDetails['likeCount'] ?? 0);
+    final commentCount =
+        StateProvider.autoDispose((ref) => postDetails['commentCount'] ?? 0);
     // Map<String, dynamic> info = {};
     // info['postDetails'] = postDetails.docs;
     // int n = info['likeCount'];
@@ -341,159 +345,180 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => Commentsection(postDetails)));
-              },
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Container(
-                      width: double.infinity,
-                      height: 280,
-                      child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.network(
-                            postDetails['image'],
-                            fit: BoxFit.cover,
-                          )),
-                      decoration: BoxDecoration(
-                          color: kblueColor,
-                          borderRadius: BorderRadius.all(Radius.circular(25))),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${postDetails['title']}: ',
-                          style: TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          '${postDetails['description']}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Consumer(
+              builder: (context, ref, child) {
+                return InkWell(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => Commentsection(
+                                postDetails['UID']))).then((value) {
+                      ref.read(likedCount.notifier).state = value['likeCount'];
+                      ref.read(commentCount.notifier).state =
+                          value['commentCount'];
+                      ref.read(likedProvider.notifier).state = value['liked'];
+                      print("exited");
+                    });
+                  },
+                  child: Column(
                     children: [
-                      Row(
-                        children: [
-                          Consumer(
-                            builder: (context, ref, child) {
-                              return Row(
-                                children: [
-                                  IconButton(
-                                    onPressed: () async {
-                                      // FirebaseFirestore.instance
-                                      //     .collection('Posts')
-                                      //     .doc(postDetails['UID'])
-                                      //     .update({
-                                      //   'likedBy': FieldValue.arrayUnion([
-                                      //     FirebaseAuth.instance.currentUser!.uid
-                                      //   ])
-                                      // });
-                                      DocumentReference user = FirebaseFirestore
-                                          .instance
-                                          .collection('Users')
-                                          .doc(FirebaseAuth
-                                              .instance.currentUser!.uid);
-                                      if (!ref.read(likedProvider)) {
-                                        FirebaseFirestore.instance
-                                            .collection('Posts')
-                                            .doc(postDetails['UID'])
-                                            .update({
-                                          'likedBy': FieldValue.arrayUnion([
-                                            FirebaseAuth
-                                                .instance.currentUser!.uid
-                                          ])
-                                        });
-                                        FirebaseFirestore.instance
-                                            .collection('Posts')
-                                            .doc(postDetails['UID'])
-                                            .update({
-                                          'likeCount': FieldValue.increment(1)
-                                        });
-                                        user.update({
-                                          'likedPosts': FieldValue.arrayUnion(
-                                              [postDetails['UID']])
-                                        });
-                                        ref.read(likedCount.notifier).state +=
-                                            1;
-                                      } else {
-                                        FirebaseFirestore.instance
-                                            .collection('Posts')
-                                            .doc(postDetails['UID'])
-                                            .update({
-                                          'likedBy': FieldValue.arrayRemove([
-                                            FirebaseAuth
-                                                .instance.currentUser!.uid
-                                          ])
-                                        });
-                                        FirebaseFirestore.instance
-                                            .collection('Posts')
-                                            .doc(postDetails['UID'])
-                                            .update({
-                                          'likeCount': FieldValue.increment(-1)
-                                        });
-                                        user.update({
-                                          'likedPosts': FieldValue.arrayRemove(
-                                              [postDetails['UID']])
-                                        });
-                                        ref.read(likedCount.notifier).state -=
-                                            1;
-                                      }
-                                      ref.read(likedProvider.notifier).state =
-                                          !ref.read(likedProvider);
-                                    },
-                                    icon: ref.watch(likedProvider)
-                                        ? FaIcon(
-                                            FontAwesomeIcons.solidHeart,
-                                            color: Colors.red,
-                                          )
-                                        : FaIcon(
-                                            FontAwesomeIcons.heart,
-                                            color: kiconColor,
-                                          ),
-                                  ),
-                                  Text('${ref.watch(likedCount)}'),
-                                ],
-                              );
-                            },
-                          ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: FaIcon(
-                              FontAwesomeIcons.comment,
-                              color: kiconColor,
-                            ),
-                          ),
-                          Text('2K'),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Container(
+                          width: double.infinity,
+                          height: 280,
+                          child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.network(
+                                postDetails['image'],
+                                fit: BoxFit.cover,
+                              )),
+                          decoration: BoxDecoration(
+                              color: kblueColor,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(25))),
+                        ),
                       ),
-                      // IconButton(
-                      //   onPressed: () {},
-                      //   icon: FaIcon(
-                      //     FontAwesomeIcons.bookmark,
-                      //     color: kiconColor,
-                      //   ),
-                      // ),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${postDetails['title']}: ',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              '${postDetails['description']}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w400,
+                              ),
+                              maxLines: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  return Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: () async {
+                                          // FirebaseFirestore.instance
+                                          //     .collection('Posts')
+                                          //     .doc(postDetails['UID'])
+                                          //     .update({
+                                          //   'likedBy': FieldValue.arrayUnion([
+                                          //     FirebaseAuth.instance.currentUser!.uid
+                                          //   ])
+                                          // });
+                                          DocumentReference user =
+                                              FirebaseFirestore
+                                                  .instance
+                                                  .collection('Users')
+                                                  .doc(FirebaseAuth.instance
+                                                      .currentUser!.uid);
+                                          if (!ref.read(likedProvider)) {
+                                            FirebaseFirestore.instance
+                                                .collection('Posts')
+                                                .doc(postDetails['UID'])
+                                                .update({
+                                              'likedBy': FieldValue.arrayUnion([
+                                                FirebaseAuth
+                                                    .instance.currentUser!.uid
+                                              ])
+                                            });
+                                            FirebaseFirestore.instance
+                                                .collection('Posts')
+                                                .doc(postDetails['UID'])
+                                                .update({
+                                              'likeCount':
+                                                  FieldValue.increment(1)
+                                            });
+                                            user.update({
+                                              'likedPosts':
+                                                  FieldValue.arrayUnion(
+                                                      [postDetails['UID']])
+                                            });
+                                            ref
+                                                .read(likedCount.notifier)
+                                                .state += 1;
+                                          } else {
+                                            FirebaseFirestore.instance
+                                                .collection('Posts')
+                                                .doc(postDetails['UID'])
+                                                .update({
+                                              'likedBy':
+                                                  FieldValue.arrayRemove([
+                                                FirebaseAuth
+                                                    .instance.currentUser!.uid
+                                              ])
+                                            });
+                                            FirebaseFirestore.instance
+                                                .collection('Posts')
+                                                .doc(postDetails['UID'])
+                                                .update({
+                                              'likeCount':
+                                                  FieldValue.increment(-1)
+                                            });
+                                            user.update({
+                                              'likedPosts':
+                                                  FieldValue.arrayRemove(
+                                                      [postDetails['UID']])
+                                            });
+                                            ref
+                                                .read(likedCount.notifier)
+                                                .state -= 1;
+                                          }
+                                          ref
+                                              .read(likedProvider.notifier)
+                                              .state = !ref.read(likedProvider);
+                                        },
+                                        icon: ref.watch(likedProvider)
+                                            ? FaIcon(
+                                                FontAwesomeIcons.thumbsUp,
+                                                color: Colors.blue,
+                                              )
+                                            : FaIcon(
+                                                FontAwesomeIcons.thumbsUp,
+                                                color: kiconColor,
+                                              ),
+                                      ),
+                                      Text('${ref.watch(likedCount)}'),
+                                    ],
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                onPressed: () {},
+                                icon: FaIcon(
+                                  FontAwesomeIcons.comment,
+                                  color: kiconColor,
+                                ),
+                              ),
+                              Text("${ref.watch(commentCount)}"),
+                            ],
+                          ),
+                          // IconButton(
+                          //   onPressed: () {},
+                          //   icon: FaIcon(
+                          //     FontAwesomeIcons.bookmark,
+                          //     color: kiconColor,
+                          //   ),
+                          // ),
+                        ],
+                      )
                     ],
-                  )
-                ],
-              ),
+                  ),
+                );
+              },
             )
           ],
         ),

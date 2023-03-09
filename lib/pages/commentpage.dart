@@ -3,15 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:linkuss/currentUser.dart';
+import 'package:linkuss/providers/basicProviders.dart';
 import 'package:linkuss/utils/colors.dart';
 import 'package:linkuss/utils/oldconstants.dart';
 import 'package:linkuss/widgets/textfields.dart';
 
 import '../utils/constants.dart';
 
-List<comment> lt = List<comment>.generate(10, (index) => comment('p1'));
+// List<comment> lt = List<comment>.generate(10, (index) => comment('p1'));
 // var commentMap = FirebaseFirestore.instance
 //     .collection("empty")
 //     .doc("USS")
@@ -21,219 +23,473 @@ List<comment> lt = List<comment>.generate(10, (index) => comment('p1'));
 //   comment('p1'),
 //
 // ];
-class Commentsection extends StatefulWidget {
-  final data;
-  Commentsection(this.data);
+class Commentsection extends ConsumerStatefulWidget {
+  String uid;
+  Commentsection(this.uid);
   @override
-  State<Commentsection> createState() => _CommentsectionState();
+  ConsumerState<Commentsection> createState() => _CommentsectionState();
 }
 
-class _CommentsectionState extends State<Commentsection> {
+class _CommentsectionState extends ConsumerState<Commentsection> {
   final commentController = TextEditingController();
-  String value = "";
-  String timestamp = "";
+  var likedProvider;
+  Future? postData;
+  Future? getComments;
   Future addCommment() async {
+    int timestamp = DateTime.now().millisecondsSinceEpoch;
+    Map<String, dynamic> comment = {
+      "value": commentController.text,
+      "name": CurrentUser.fname,
+      "timestamp": timestamp,
+      "uid": FirebaseAuth.instance.currentUser!.uid
+    };
     await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(widget.data["UID"])
-        .update(
-      {
-        "comments.${FirebaseAuth.instance.currentUser!.uid}": {
-          "value": value,
-          "name": CurrentUser.fname,
-          "timestamp": timestamp,
-        },
-      },
+        .collection("CommentSection")
+        .doc(widget.uid)
+        .collection("Comments")
+        .doc(timestamp.toString())
+        .set(comment, SetOptions(merge: true));
+    await FirebaseFirestore.instance.collection("Posts").doc(widget.uid).update(
+      {"commentCount": FieldValue.increment(1)},
     );
+    ref.read(commentProvider.notifier).addAtFist(comment);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    postData = getPostDetails();
+    getComments = getCommentSection();
+    //comments = List<Map<String, dynamic>>.from(widget.data['comments'] ?? []);
+  }
+
+  Future getPostDetails() async {
+    DocumentSnapshot data = await FirebaseFirestore.instance
+        .collection("Posts")
+        .doc(widget.uid)
+        .get();
+
+    Map<String, dynamic> parsed =
+        Map<String, dynamic>.from(data.data() as Map<String, dynamic>);
+
+    return parsed;
+  }
+
+  Future getCommentSection() async {
+    print(widget.uid);
+    QuerySnapshot data = await FirebaseFirestore.instance
+        .collection("CommentSection")
+        .doc(widget.uid)
+        .collection("Comments")
+        .orderBy("timestamp", descending: true)
+        .get();
+
+    List<Map<String, dynamic>> dataList = [];
+
+    data.docs.forEach((element) {
+      Map<String, dynamic> parsed =
+          Map<String, dynamic>.from(element.data() as Map<String, dynamic>);
+      dataList.add(parsed);
+    });
+
+    return dataList;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                Expanded(
-                  child: CustomScrollView(
-                    slivers: [
-                      SliverAppBar(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        // title: Text("Details"),
-                        // centerTitle: true,
-                        // pinned: true,
-                        // shadowColor: MyColors.primary,
-                        // backgroundColor: MyColors.primary,
-                        //pinned: true,
-                        expandedHeight: 250.0,
-                        flexibleSpace: FlexibleSpaceBar(
-                          // title: Text('Goa', textScaleFactor: 1),
-                          background: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(
-                              widget.data['image'],
-                              fit: BoxFit.cover,
+        child: FutureBuilder(
+            future: postData,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (snapshot.hasData) {
+                  final likeCount = StateProvider.autoDispose(
+                      (ref) => snapshot.data['likeCount']);
+
+                  List<String> likedby =
+                      List.from(snapshot.data['likedBy'] ?? []);
+                  likedProvider = StateProvider.autoDispose((ref) =>
+                      likedby.contains(FirebaseAuth.instance.currentUser!.uid));
+
+                  return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: CustomScrollView(
+                              slivers: [
+                                SliverAppBar(
+                                  leading: IconButton(
+                                    onPressed: () {
+                                      Navigator.pop(context, {
+                                        "likeCount": ref.read(likeCount),
+                                        "commentCount":
+                                            ref.read(commentProvider).length,
+                                        "liked": ref.read(likedProvider)
+                                      });
+                                    },
+                                    icon: Icon(Icons.arrow_back_ios),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  // title: Text("Details"),
+                                  // centerTitle: true,
+                                  // pinned: true,
+                                  // shadowColor: MyColors.primary,
+                                  // backgroundColor: MyColors.primary,
+                                  //pinned: true,
+                                  expandedHeight: 250.0,
+                                  flexibleSpace: FlexibleSpaceBar(
+                                    // title: Text('Goa', textScaleFactor: 1),
+                                    background: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Image.network(
+                                        snapshot.data['image'],
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // SliverPersistentHeader(
+                                //   pinned: true,
+                                //   delegate: CustomSliverDelegate(snapshot.data['image'],
+                                //       expandedHeight: 250),
+                                // ),
+                                SliverToBoxAdapter(
+                                  child: Container(
+                                    //height: MediaQuery.of(context).size.height - 250,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        // Stack(
+                                        //   children: [
+                                        //     Container(
+                                        //         height: MediaQuery.of(context).size.height / 2.75,
+                                        //         decoration: BoxDecoration(
+                                        //             borderRadius: BorderRadius.circular(20.0)),
+                                        //         child: FittedBox(
+                                        //             fit: BoxFit.fill,
+                                        //             child: ClipRRect(
+                                        //                 borderRadius: BorderRadius.circular(50.0),
+                                        //                 child: Image(
+                                        //                     image: NetworkImage(
+                                        //                         snapshot.data['image']))))),
+                                        //     // Positioned(
+                                        //     //   top: 0,
+                                        //     //   left: 0,
+                                        //     //     child: Container(
+
+                                        //     //   decoration: BoxDecoration(
+                                        //     //     shape: BoxShape.circle,
+                                        //     //     color: MyColors.primary,
+                                        //     //   ),
+                                        //     //   child: Center(
+                                        //     //     child: IconButton(
+                                        //     //       onPressed: () {
+                                        //     //         Navigator.pop(context);
+                                        //     //       },
+                                        //     //       icon: Icon(
+                                        //     //         Icons.arrow_back_ios,
+                                        //     //         color: Colors.white,
+                                        //     //       ),
+                                        //     //     ),
+                                        //     //   ),
+                                        //     // ))
+                                        //   ],
+                                        // ),
+                                        SizedBox(height: 10),
+                                        Consumer(
+                                            builder: (context, ref, child) {
+                                          return Row(children: [
+                                            IconButton(
+                                              onPressed: () async {
+                                                // FirebaseFirestore.instance
+                                                //     .collection('Posts')
+                                                //     .doc(postDetails['UID'])
+                                                //     .update({
+                                                //   'likedBy': FieldValue.arrayUnion([
+                                                //     FirebaseAuth.instance.currentUser!.uid
+                                                //   ])
+                                                // });
+                                                DocumentReference user =
+                                                    FirebaseFirestore.instance
+                                                        .collection('Users')
+                                                        .doc(FirebaseAuth
+                                                            .instance
+                                                            .currentUser!
+                                                            .uid);
+                                                if (!ref.read(likedProvider)) {
+                                                  FirebaseFirestore.instance
+                                                      .collection('Posts')
+                                                      .doc(widget.uid)
+                                                      .update({
+                                                    'likedBy':
+                                                        FieldValue.arrayUnion([
+                                                      FirebaseAuth.instance
+                                                          .currentUser!.uid
+                                                    ])
+                                                  });
+                                                  FirebaseFirestore.instance
+                                                      .collection('Posts')
+                                                      .doc(widget.uid)
+                                                      .update({
+                                                    'likeCount':
+                                                        FieldValue.increment(1)
+                                                  });
+                                                  user.update({
+                                                    'likedPosts':
+                                                        FieldValue.arrayUnion(
+                                                            [widget.uid])
+                                                  });
+                                                  ref
+                                                      .read(likeCount.notifier)
+                                                      .state += 1;
+                                                } else {
+                                                  FirebaseFirestore.instance
+                                                      .collection('Posts')
+                                                      .doc(widget.uid)
+                                                      .update({
+                                                    'likedBy':
+                                                        FieldValue.arrayRemove([
+                                                      FirebaseAuth.instance
+                                                          .currentUser!.uid
+                                                    ])
+                                                  });
+                                                  FirebaseFirestore.instance
+                                                      .collection('Posts')
+                                                      .doc(widget.uid)
+                                                      .update({
+                                                    'likeCount':
+                                                        FieldValue.increment(-1)
+                                                  });
+                                                  user.update({
+                                                    'likedPosts':
+                                                        FieldValue.arrayRemove(
+                                                            [widget.uid])
+                                                  });
+                                                  ref
+                                                      .read(likeCount.notifier)
+                                                      .state -= 1;
+                                                }
+                                                ref
+                                                        .read(likedProvider
+                                                            .notifier)
+                                                        .state =
+                                                    !ref.read(likedProvider);
+                                              },
+                                              icon: ref.watch(likedProvider)
+                                                  ? FaIcon(
+                                                      FontAwesomeIcons.thumbsUp,
+                                                      color: Colors.blue,
+                                                    )
+                                                  : FaIcon(
+                                                      FontAwesomeIcons.thumbsUp,
+                                                      color: kiconColor,
+                                                    ),
+                                            ),
+                                            // ref.watch(likedProvider)
+                                            //     ? IconButton(
+                                            //         onPressed: () {
+                                            //           ref
+                                            //                   .read(
+                                            //                       likedProvider
+                                            //                           .notifier)
+                                            //                   .state =
+                                            //               !ref.read(
+                                            //                   likedProvider);
+                                            //           ref
+                                            //               .read(likeCount
+                                            //                   .notifier)
+                                            //               .state -= 1;
+                                            //         },
+                                            //         icon: FaIcon(
+                                            //           FontAwesomeIcons.thumbsUp,
+                                            //           color: Colors.blue,
+                                            //         ),
+                                            //       )
+                                            //     : IconButton(
+                                            //         onPressed: () {
+                                            //           ref
+                                            //                   .read(
+                                            //                       likedProvider
+                                            //                           .notifier)
+                                            //                   .state =
+                                            //               !ref.read(
+                                            //                   likedProvider);
+                                            //           ref
+                                            //               .read(likeCount
+                                            //                   .notifier)
+                                            //               .state += 1;
+                                            //         },
+                                            //         icon: FaIcon(
+                                            //           FontAwesomeIcons.thumbsUp,
+                                            //           color: kiconColor,
+                                            //         ),
+                                            //       ),
+                                            Text(
+                                              ref.watch(likeCount).toString(),
+                                              style: TextStyle(fontSize: 14.0),
+                                            ),
+                                            SizedBox(width: 20),
+                                            FaIcon(
+                                              FontAwesomeIcons.comment,
+                                              color: kiconColor,
+                                            ),
+                                            SizedBox(width: 10),
+                                            Consumer(
+                                              builder: (context, ref, child) {
+                                                return Text(
+                                                  "${ref.watch(commentProvider).length}",
+                                                  style:
+                                                      TextStyle(fontSize: 14.0),
+                                                );
+                                              },
+                                            ),
+                                          ]);
+                                        }),
+                                        SizedBox(height: 10),
+                                        Text(
+                                          snapshot.data['title'],
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        SizedBox(height: 10),
+                                        Text(snapshot.data['description']),
+
+                                        Divider(),
+                                        SizedBox(height: 10),
+                                        FutureBuilder(
+                                            future: getComments,
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.done) {
+                                                if (snapshot.hasData) {
+                                                  Future.delayed(
+                                                      Duration(seconds: 0), () {
+                                                    ref
+                                                        .read(commentProvider
+                                                            .notifier)
+                                                        .setValue(List<
+                                                                Map<String,
+                                                                    dynamic>>.from(
+                                                            snapshot.data));
+                                                  });
+                                                  return Consumer(builder:
+                                                      (context, ref, child) {
+                                                    return ref
+                                                                .watch(
+                                                                    commentProvider)
+                                                                .length !=
+                                                            0
+                                                        ? ListView.builder(
+                                                            itemCount: ref
+                                                                .watch(
+                                                                    commentProvider)
+                                                                .length,
+                                                            shrinkWrap: true,
+                                                            physics:
+                                                                NeverScrollableScrollPhysics(),
+                                                            itemBuilder:
+                                                                (context,
+                                                                    index) {
+                                                              return commentItem(
+                                                                  ref.watch(
+                                                                          commentProvider)[
+                                                                      index]);
+                                                            })
+                                                        : Center(
+                                                            child: Text(
+                                                                "No Comments Found"),
+                                                          );
+                                                  });
+                                                } else {
+                                                  return Center(
+                                                    child: Text(
+                                                        "No Comments Found"),
+                                                  );
+                                                }
+                                              } else if (snapshot
+                                                      .connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                );
+                                              } else {
+                                                return Center(
+                                                  child: Text(
+                                                      'Something went wrong'),
+                                                );
+                                              }
+                                            }),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
-                      // SliverPersistentHeader(
-                      //   pinned: true,
-                      //   delegate: CustomSliverDelegate(widget.data['image'],
-                      //       expandedHeight: 250),
-                      // ),
-                      SliverToBoxAdapter(
-                        child: Container(
-                          //height: MediaQuery.of(context).size.height - 250,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Stack(
-                              //   children: [
-                              //     Container(
-                              //         height: MediaQuery.of(context).size.height / 2.75,
-                              //         decoration: BoxDecoration(
-                              //             borderRadius: BorderRadius.circular(20.0)),
-                              //         child: FittedBox(
-                              //             fit: BoxFit.fill,
-                              //             child: ClipRRect(
-                              //                 borderRadius: BorderRadius.circular(50.0),
-                              //                 child: Image(
-                              //                     image: NetworkImage(
-                              //                         widget.data['image']))))),
-                              //     // Positioned(
-                              //     //   top: 0,
-                              //     //   left: 0,
-                              //     //     child: Container(
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                            child: Container(
+                              // color: Colors.white,
 
-                              //     //   decoration: BoxDecoration(
-                              //     //     shape: BoxShape.circle,
-                              //     //     color: MyColors.primary,
-                              //     //   ),
-                              //     //   child: Center(
-                              //     //     child: IconButton(
-                              //     //       onPressed: () {
-                              //     //         Navigator.pop(context);
-                              //     //       },
-                              //     //       icon: Icon(
-                              //     //         Icons.arrow_back_ios,
-                              //     //         color: Colors.white,
-                              //     //       ),
-                              //     //     ),
-                              //     //   ),
-                              //     // ))
-                              //   ],
-                              // ),
-                              Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(children: [
-                                      IconButton(
-                                        onPressed: () {},
-                                        icon: FaIcon(
-                                          FontAwesomeIcons.heart,
-                                          color: kiconColor,
-                                        ),
-                                      ),
-                                      Text(
-                                        widget.data['likeCount'].toString(),
-                                        style: TextStyle(fontSize: 14.0),
-                                      ),
-                                      SizedBox(width: 15.0),
-                                      IconButton(
-                                        onPressed: () {},
-                                        icon: FaIcon(
-                                          FontAwesomeIcons.comment,
-                                          color: kiconColor,
-                                        ),
-                                      ),
-                                      Text(
-                                        '27',
-                                        style: TextStyle(fontSize: 14.0),
-                                      ),
-                                    ]),
-                                    // IconButton(
-                                    //   onPressed: () {},
-                                    //   icon: Icon(Icons.save, size: 20.0),
-                                    // ),
-                                  ]),
-                              SizedBox(height: 10),
-                              Text(
-                                widget.data['title'],
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // CircleAvatar(
+                                  //   radius: 20,
+                                  //   backgroundImage: AssetImage('assets/ipulogo.png'),
+                                  // ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: SizedBox(
+                                      child: primaryTextField(
+                                          hint: "Enter comment",
+                                          controller: commentController),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      addCommment();
+                                      commentController.clear();
+                                    },
+                                    icon: Icon(
+                                      Icons.send,
+                                      color: MyColors.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(height: 10),
-                              Text(widget.data['description']),
-                              SizedBox(height: 10),
-                              Divider(),
-                              SizedBox(height: 10),
-                              ListView(
-                                shrinkWrap: true,
-                                physics: NeverScrollableScrollPhysics(),
-                                children: lt,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Container(
-                    // color: Colors.white,
-
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // CircleAvatar(
-                        //   radius: 20,
-                        //   backgroundImage: AssetImage('assets/ipulogo.png'),
-                        // ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: SizedBox(
-                            child: primaryTextField(
-                                hint: "Enter comment",
-                                controller: commentController),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            value = commentController.text;
-                            timestamp = DateTime.now()
-                                .millisecondsSinceEpoch
-                                .toString();
-                            addCommment();
-                            commentController.clear();
-                          },
-                          icon: Icon(
-                            Icons.send,
-                            color: MyColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            )),
+                        ],
+                      ));
+                } else {
+                  return Center(
+                    child:
+                        Text('Something went wrong! Please try again later.'),
+                  );
+                }
+              } else if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              } else {
+                return Center(
+                  child: Text('Something went wrong! Please try again later.'),
+                );
+              }
+            }),
       ),
     );
   }
-}
 
-class comment extends StatelessWidget {
-  String person;
-  comment(this.person);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget commentItem(final data) {
     return Container(
         // color: Colors.white,
         padding: EdgeInsets.symmetric(vertical: 10),
@@ -256,7 +512,7 @@ class comment extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              person,
+                              data['name'],
                               style: TextStyle(
                                   fontSize: 15.0, fontWeight: FontWeight.bold),
                             ),
@@ -268,17 +524,15 @@ class comment extends StatelessWidget {
                         ),
                         SizedBox(height: 10),
                         Text(
-                          "helo its first comment As an intellectual object, a book is prototypically a composition of such great length that it takes a considerable investment of time to compose ",
+                          data['value'],
                           style: TextStyle(fontSize: 14.0),
                         ),
                       ]),
                 ),
-                Divider(
-                  color: Color(0x9c000000),
-                  height: 10.0,
-                )
               ],
             ),
+            SizedBox(height: 20),
+            Divider()
           ],
         ));
   }
