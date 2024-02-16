@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:linkuss/utils/colors.dart';
 
 Widget primaryButton(double width,
-    {required Function() callback, required String title}) {
+    {required Function() callback, required String title, Color? btnColor}) {
   return Container(
     constraints: BoxConstraints(minWidth: width),
     child: MaterialButton(
       onPressed: callback,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color: MyColors.primary,
+      color: btnColor ?? MyColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: Text(
         title,

@@ -1,12 +1,15 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:linkuss/currentUser.dart';
 import 'package:linkuss/pages/commentpage.dart';
 import 'package:linkuss/utils/colors.dart';
 import 'package:linkuss/widgets/buttons.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../utils/constants.dart';
 import '../utils/oldconstants.dart';
 
@@ -23,10 +26,16 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
   String selectedTab = "Team";
   final tabProvider = StateProvider.autoDispose((ref) => 0);
   Future? clubPosts;
+  late final following;
+  final Uri emailLaunchUri = Uri(
+    scheme: 'mailto',
+    path: 'kartikkhatana1@gmail.com',
+  );
   @override
   void initState() {
     super.initState();
-
+    following = StateProvider.autoDispose(
+        (ref) => CurrentUser.following.contains(widget.data['UID']));
     tabController = TabController(length: 3, vsync: this);
     clubPosts = getClubPosts();
   }
@@ -45,8 +54,34 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
     }
   }
 
+  void setFollow(String uid, bool ispresent) {
+    if (ispresent) {
+      FirebaseFirestore.instance
+          .collection('Users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .update(
+        {
+          'following': FieldValue.arrayRemove([uid])
+        },
+      );
+    } else {
+      FirebaseFirestore.instance
+          .collection('Users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .update(
+        {
+          'following': FieldValue.arrayUnion([uid])
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // StateController<bool> isFollowing = ref.watch(following.notifier);
+
+    // StateController<int> counter = ref.watch(counterProvider.notifier);
+    // isFollowing.state = CurrentUser.following.contains(widget.data['UID']);
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
@@ -61,6 +96,11 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
               SliverToBoxAdapter(
                 child: Column(
                   children: [
+                    // InkWell(
+                    //     onTap: () {
+                    //       counter.state++;
+                    //     },
+                    //     child: Text(ref.watch(counterProvider).toString())),
                     const SizedBox(
                       height: 20.0,
                     ),
@@ -87,10 +127,36 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
+                        // Consumer(builder: (context, ref, child) {
+                        //   return ref.watch(following)
+                        //       ? primaryButton(
+                        //           MediaQuery.of(context).size.width / 3,
+                        //           callback: () {
+                        //           setFollow(
+                        //               widget.data['UID'],
+                        //               CurrentUser.following
+                        //                   .contains(widget.data['UID']));
+                        //           ref.read(following.notifier).state = false;
+                        //           CurrentUser.following
+                        //               .remove(widget.data['UID']);
+                        //         }, title: "Following", btnColor: Colors.blue)
+                        //       : primaryButton(
+                        //           MediaQuery.of(context).size.width / 3,
+                        //           callback: () {
+                        //           setFollow(
+                        //               widget.data['UID'],
+                        //               CurrentUser.following
+                        //                   .contains(widget.data['UID']));
+                        //           ref.read(following.notifier).state = true;
+                        //           CurrentUser.following.add(widget.data['UID']);
+                        //         }, title: "Follow");
+                        // }),
+                        // CurrentUser.following.contains() ?  primaryButton(MediaQuery.of(context).size.width / 3,
+                        //     callback: () {}, title: "Follow"),
                         primaryButton(MediaQuery.of(context).size.width / 3,
-                            callback: () {}, title: "Follow"),
-                        primaryButton(MediaQuery.of(context).size.width / 3,
-                            callback: () {}, title: "Mail Us")
+                            callback: () {
+                          launchUrl(emailLaunchUri);
+                        }, title: "Mail Us")
                       ],
                     ),
                     const SizedBox(
@@ -181,7 +247,10 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
         return PostsTab();
       case 2:
       default:
-        return Container();
+        return Container(
+          height: 100,
+          child: Center(child: Text("No Events Found")),
+        );
     }
   }
 
@@ -207,8 +276,8 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    Commentsection(snapshot.data[index]['UID'])));
+                                builder: (context) => Commentsection(
+                                    snapshot.data[index]['UID'])));
                       },
                       child: Container(
                         child: Image.network(
@@ -270,7 +339,8 @@ Widget TeamTab(final data) {
                 ),
               )),
             )
-          : Text("No Faculty Found"),
+          : Container(
+              height: 100, child: Center(child: Text("No Faculty Found"))),
       const Align(
           alignment: Alignment.centerLeft,
           child: Padding(
@@ -298,7 +368,8 @@ Widget TeamTab(final data) {
                 ),
               )),
             )
-          : Text("No Students Found"),
+          : Container(
+              height: 100, child: Center(child: Text("No Students Found"))),
       const SizedBox(
         height: 40.0,
       )

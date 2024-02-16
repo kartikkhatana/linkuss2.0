@@ -10,6 +10,7 @@ import 'package:linkuss/providers/basicProviders.dart';
 import 'package:linkuss/utils/colors.dart';
 import 'package:linkuss/utils/oldconstants.dart';
 import 'package:linkuss/widgets/textfields.dart';
+import 'package:uuid/uuid.dart';
 
 import '../utils/constants.dart';
 
@@ -37,7 +38,9 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
   Future? getComments;
   Future addCommment() async {
     int timestamp = DateTime.now().millisecondsSinceEpoch;
+    String cid = Uuid().v4();
     Map<String, dynamic> comment = {
+      "cid": cid,
       "value": commentController.text,
       "name": CurrentUser.fname,
       "timestamp": timestamp,
@@ -47,12 +50,26 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
         .collection("CommentSection")
         .doc(widget.uid)
         .collection("Comments")
-        .doc(timestamp.toString())
+        .doc(cid)
         .set(comment, SetOptions(merge: true));
     await FirebaseFirestore.instance.collection("Posts").doc(widget.uid).update(
       {"commentCount": FieldValue.increment(1)},
     );
     ref.read(commentProvider.notifier).addAtFist(comment);
+//    FirebaseFirestore.instance.collection("").add({}).then((value) => print(value.id));
+  }
+
+  Future deleteComment(String cid) async {
+    await FirebaseFirestore.instance
+        .collection("CommentSection")
+        .doc(widget.uid)
+        .collection("Comments")
+        .doc(cid)
+        .delete();
+    await FirebaseFirestore.instance.collection("Posts").doc(widget.uid).update(
+      {"commentCount": FieldValue.increment(-1)},
+    );
+    ref.read(commentProvider.notifier).deleteComment(cid);
   }
 
   @override
@@ -516,10 +533,27 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                               style: TextStyle(
                                   fontSize: 15.0, fontWeight: FontWeight.bold),
                             ),
-                            Text(
-                              '8h ago',
-                              style: TextStyle(fontSize: 12.0),
-                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  '8h ago',
+                                  style: TextStyle(fontSize: 12.0),
+                                ),
+                                data['uid'] ==
+                                        FirebaseAuth.instance.currentUser!.uid
+                                    ? IconButton(
+                                        onPressed: () async {
+                                          try {
+                                            await deleteComment(
+                                                data['cid'] ?? "");
+                                          } catch (e) {
+                                            print("Something went wrong");
+                                          }
+                                        },
+                                        icon: Icon(Icons.delete))
+                                    : Container()
+                              ],
+                            )
                           ],
                         ),
                         SizedBox(height: 10),

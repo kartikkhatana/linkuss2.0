@@ -400,7 +400,7 @@ class CustomSliverDelegate extends SliverPersistentHeaderDelegate {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => LoginPage()));
                 },
-                icon: Icon(Icons.logout),
+                icon: Icon(Icons.logout,color: Colors.white,),
               )),
         ],
       ),

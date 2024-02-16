@@ -5,26 +5,28 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:linkuss/bottombar.dart';
 import 'package:linkuss/currentUser.dart';
 import 'package:linkuss/pages/register.dart';
 import 'package:linkuss/pages/verifyemail.dart';
+import 'package:linkuss/providers/basicProviders.dart';
 import 'package:linkuss/services/sampleService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/buttons.dart';
 import '../widgets/textfields.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
 //hello world
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final emailC = TextEditingController();
   final passC = TextEditingController();
 
@@ -146,6 +148,7 @@ class _LoginPageState extends State<LoginPage> {
   void login() async {
     if (emailC.text.isNotEmpty && passC.text.isNotEmpty) {
       if (emailC.text.toLowerCase().endsWith('ipu.ac.in')) {
+        ref.read(isLoading.notifier).state = true;
         try {
           UserCredential userCredential = await FirebaseAuth.instance
               .signInWithEmailAndPassword(
@@ -154,7 +157,6 @@ class _LoginPageState extends State<LoginPage> {
               .collection('Users')
               .doc(userCredential.user!.uid);
           DocumentSnapshot userDetails = await ref.get();
-
           if (userDetails.data() != null) {
             //this method is so complicated due to firebase database bug opened in github
             Map<String, dynamic> data =
@@ -167,6 +169,8 @@ class _LoginPageState extends State<LoginPage> {
               CurrentUser.enrollNo = data['enrollNo'];
               CurrentUser.college = data['college'];
               CurrentUser.branch = data['branch'];
+              CurrentUser.following =
+                  List<String>.from(data['following']) ?? [];
               updateUserLocally(
                   CurrentUser.fname,
                   CurrentUser.lname,
@@ -240,6 +244,7 @@ class _LoginPageState extends State<LoginPage> {
             ));
           }
         }
+        ref.read(isLoading.notifier).state = false;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Please Enter Correct GGSIPU Email Address.'),

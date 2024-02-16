@@ -68,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     postDetails = await FirebaseFirestore.instance
         .collection("Posts")
+        .orderBy("timestamp", descending: true)
         .where("filter", isEqualTo: CurrentUser.college)
         .get();
     data['postDetails'] = postDetails.docs;
@@ -350,10 +351,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 return InkWell(
                   onTap: () {
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => Commentsection(
-                                postDetails['UID']))).then((value) {
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    Commentsection(postDetails['UID'])))
+                        .then((value) {
                       ref.read(likedCount.notifier).state = value['likeCount'];
                       ref.read(commentCount.notifier).state =
                           value['commentCount'];
@@ -362,6 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(12.0),
@@ -373,6 +376,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Image.network(
                                 postDetails['image'],
                                 fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) {
+                                    return child;
+                                  } else {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                    );
+                                  }
+                                },
                               )),
                           decoration: BoxDecoration(
                               color: kblueColor,

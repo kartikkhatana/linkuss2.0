@@ -7,7 +7,9 @@ import 'package:linkuss/pages/commentpage.dart';
 import 'package:linkuss/pages/homeScreen.dart';
 import 'package:linkuss/pages/login.dart';
 import 'package:linkuss/pages/splashScreen.dart';
+import 'package:linkuss/providers/basicProviders.dart';
 import 'package:linkuss/testingpage.dart';
+import 'package:linkuss/utils/colors.dart';
 
 // void main() {
 //   runApp(const MyApp());
@@ -27,6 +29,30 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
+      builder: (context, child) {
+        return Scaffold(
+          body: Stack(
+            children: [
+              child!,
+              Consumer(builder: (context, ref, child) {
+                return Visibility(
+                  visible: ref.watch(isLoading),
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.black12),
+                    height: MediaQuery.of(context).size.height,
+                    width: MediaQuery.of(context).size.width,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: MyColors.primary,
+                      ),
+                    ),
+                  ),
+                );
+              })
+            ],
+          ),
+        );
+      },
       theme: ThemeData(
         // This is the theme of your application.
         //

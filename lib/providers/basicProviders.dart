@@ -12,6 +12,15 @@ class comments extends StateNotifier<List<Map<String, dynamic>>> {
   }
 
   void addAtFist(Map<String, dynamic> val) {
-    state = [val,...state];
+    state = [val, ...state];
+  }
+
+  void deleteComment(String cid) {
+    List<Map<String, dynamic>> val = [];
+    state.removeWhere((element) => element['cid'] == cid);
+    val = state;
+    state = [...val];
   }
 }
+
+final isLoading = StateProvider((ref) => false);

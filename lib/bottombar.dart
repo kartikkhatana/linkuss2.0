@@ -2,6 +2,7 @@ import 'package:bottom_navy_bar/bottom_navy_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:linkuss/pages/homeScreen.dart';
+import 'package:linkuss/pages/trackPage.dart';
 import 'package:linkuss/pages/userProfilePage.dart';
 import 'package:linkuss/utils/colors.dart';
 
@@ -20,7 +21,7 @@ class _BottomBarState extends State<BottomBar> {
   @override
   void initState() {
     super.initState();
-    pageList = [HomeScreen(), Container(), UserProfilePage()];
+    pageList = [HomeScreen(), TrackingPage(), UserProfilePage()];
   }
 
   @override
