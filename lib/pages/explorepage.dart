@@ -66,7 +66,7 @@ class _ExploreClubsState extends State<ExploreClubs> {
                     },
                     icon: Icon(Icons.arrow_back_ios)),
                 Text(
-                  "Explore Clubs",
+                  "Explore",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 )
               ],

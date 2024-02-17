@@ -11,6 +11,7 @@ import 'package:linkuss/utils/colors.dart';
 import 'package:linkuss/utils/constants.dart';
 import 'package:linkuss/model/post_card.dart';
 import 'package:linkuss/model/story.dart';
+import 'package:uuid/uuid.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -163,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: true,
         title: const Text(
-          "LINKUSS",
+          "LINKIPU",
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.w500,
@@ -269,6 +270,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget postItem(final clubDetails, final postDetails) {
+    DateTime postTime = DateTime.fromMillisecondsSinceEpoch(postDetails['timestamp']);
+    DateTime now = DateTime.now();
+    Duration difference = now.difference(postTime);
+    String timeAgo;
+
+    if (difference.inDays > 0) {
+      timeAgo = '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
+    } else if (difference.inHours > 0) {
+      timeAgo = '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
+    } else {
+      timeAgo = '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+    }
     List<String> likedby = List.from(postDetails['likedBy'] ?? []);
     final likedProvider = StateProvider.autoDispose(
         (ref) => likedby.contains(FirebaseAuth.instance.currentUser!.uid));
@@ -334,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: TextStyle(fontWeight: FontWeight.w500),
                               ),
                               Text(
-                                '1d ago',
+                                timeAgo,
                                 style: TextStyle(color: kiconColor),
                               ),
                             ],
@@ -401,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${postDetails['title']}: ',
+                              '${postDetails['title']}',
                               style: TextStyle(fontWeight: FontWeight.w500),
                             ),
                             SizedBox(height: 10),
@@ -497,11 +510,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                               .state = !ref.read(likedProvider);
                                         },
                                         icon: ref.watch(likedProvider)
-                                            ? FaIcon(
-                                                FontAwesomeIcons.thumbsUp,
+                                            ? const FaIcon(
+                                                FontAwesomeIcons.solidThumbsUp,
                                                 color: Colors.blue,
                                               )
-                                            : FaIcon(
+                                            : const FaIcon(
                                                 FontAwesomeIcons.thumbsUp,
                                                 color: kiconColor,
                                               ),
@@ -512,7 +525,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                               ),
                               IconButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    Commentsection(postDetails['UID'])));
+                                },
                                 icon: FaIcon(
                                   FontAwesomeIcons.comment,
                                   color: kiconColor,

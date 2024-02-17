@@ -29,7 +29,7 @@ class _ClubProfilePageState extends ConsumerState<ClubProfilePage>
   late final following;
   final Uri emailLaunchUri = Uri(
     scheme: 'mailto',
-    path: 'kartikkhatana1@gmail.com',
+    path: 'sdcusict@ipu.ac.in',
   );
   @override
   void initState() {

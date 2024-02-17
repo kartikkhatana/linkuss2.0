@@ -2,29 +2,35 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:date_time_picker/date_time_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:linkuss/pages/emailVerificationPage.dart';
 import 'package:linkuss/pages/login.dart';
 import 'package:linkuss/pages/verifyemail.dart';
 import 'package:linkuss/utils/colors.dart';
+import 'package:linkuss/widgets/image_input.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+import '../utils/showSnackbar.dart';
 import '../widgets/buttons.dart';
 import '../widgets/textfields.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
+  File? _selectedImage;
   final fnameC = TextEditingController();
   final lnameC = TextEditingController();
   final emailC = TextEditingController();
@@ -39,6 +45,9 @@ class _RegisterPageState extends State<RegisterPage> {
   String? college;
   String? branch;
   bool accept = false;
+  
+  final imageProvider = StateProvider.autoDispose((ref) => "");
+
   @override
   void initState() {
     // TODO: implement initState
@@ -46,8 +55,33 @@ class _RegisterPageState extends State<RegisterPage> {
     collegeData = miscRef.doc("collegeData").get();
   }
 
+  Future<String?> uploadImage() async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+
+      final postsRef = storageRef.child(
+          "users/${Uuid().v4()}.jpg");
+
+      if (ref.read(imageProvider) != "") {
+        try {
+          await postsRef.putFile(File(ref.read(imageProvider)));
+          String url = await postsRef.getDownloadURL();
+
+          return url;
+        } on FirebaseException catch (e) {
+          print(e);
+        }
+      }
+    } catch (e) {
+      showSnackBar(context, "Something went wrong while uploading image");
+      print("Something went wrong" + e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 249, 248, 253),
       body: SafeArea(
@@ -87,6 +121,14 @@ class _RegisterPageState extends State<RegisterPage> {
                                 color: Colors.white),
                             child: Column(
                               children: [
+                                // ImageInput(
+                                //   onPickImage: (image) {
+                                //     _selectedImage = image;
+                                //     ref.read(imageProvider.notifier).state = _selectedImage != null ? _selectedImage!.path : "";
+                                //     uploadImage();
+                                  
+                                //   },),
+                                  SizedBox(height: 10,),
                                 Padding(
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 20, vertical: 10),
@@ -418,6 +460,8 @@ class _RegisterPageState extends State<RegisterPage> {
               String buildNumber = packageInfo.buildNumber;
               DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
 
+             // String? url = await uploadImage();
+
               IosDeviceInfo iosinfo;
               AndroidDeviceInfo androidinfo;
 
@@ -438,6 +482,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   "following": [],
                   "likes": [],
                   "comments": [],
+                //  "profileimg" : url,
                   "time": time,
                   "lastOpened": time,
                   "platform": "ios",
@@ -465,6 +510,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   "endingYear": DateFormat('dd-MM-yyyy')
                       .format(DateTime.parse(endingYear.text)),
                   "premium": 0,
+                 // "profileimg":url,
                   "status": 1,
                   "time": time,
                   "lastOpened": time,

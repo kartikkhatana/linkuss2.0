@@ -49,7 +49,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               width: MediaQuery.of(context).size.width,
             ),
             Text(
-              "LINKUSS",
+              "LINKIPU",
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 40,
@@ -170,7 +170,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               CurrentUser.college = data['college'];
               CurrentUser.branch = data['branch'];
               CurrentUser.following =
-                  List<String>.from(data['following']) ?? [];
+                  List<String>.from(data['following']?? []) ;
               updateUserLocally(
                   CurrentUser.fname,
                   CurrentUser.lname,
