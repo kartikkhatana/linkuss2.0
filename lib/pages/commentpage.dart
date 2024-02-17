@@ -56,7 +56,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
       {"commentCount": FieldValue.increment(1)},
     );
     ref.read(commentProvider.notifier).addAtFist(comment);
-//    FirebaseFirestore.instance.collection("").add({}).then((value) => print(value.id));
+    //    FirebaseFirestore.instance.collection("").add({}).then((value) => print(value.id));
   }
 
   Future deleteComment(String cid) async {
@@ -131,7 +131,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                       likedby.contains(FirebaseAuth.instance.currentUser!.uid));
 
                   return Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
                           Expanded(
@@ -299,7 +299,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                                               },
                                               icon: ref.watch(likedProvider)
                                                   ? FaIcon(
-                                                      FontAwesomeIcons.thumbsUp,
+                                                      FontAwesomeIcons.solidThumbsUp,
                                                       color: Colors.blue,
                                                     )
                                                   : FaIcon(
@@ -507,9 +507,21 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
   }
 
   Widget commentItem(final data) {
+    DateTime postTime = DateTime.fromMillisecondsSinceEpoch(data['timestamp']);
+    DateTime now = DateTime.now();
+    Duration difference = now.difference(postTime);
+    String timeAgo;
+
+    if (difference.inDays > 0) {
+      timeAgo = '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
+    } else if (difference.inHours > 0) {
+      timeAgo = '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
+    } else {
+      timeAgo = '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+    }
     return Container(
         // color: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: 10),
+        //padding: EdgeInsets.symmetric(vertical: 2),
         child: Column(
           children: [
             Row(
@@ -520,7 +532,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                 //   radius: 20,
                 //   backgroundImage: AssetImage('assets/ipulogo.png'),
                 // ),
-                SizedBox(width: 10),
+                //SizedBox(width: 5),
                 Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,7 +548,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                             Row(
                               children: [
                                 Text(
-                                  '8h ago',
+                                  timeAgo,
                                   style: TextStyle(fontSize: 12.0),
                                 ),
                                 data['uid'] ==
@@ -556,7 +568,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                             )
                           ],
                         ),
-                        SizedBox(height: 10),
+                        //SizedBox(height: 5),
                         Text(
                           data['value'],
                           style: TextStyle(fontSize: 14.0),
@@ -565,7 +577,7 @@ class _CommentsectionState extends ConsumerState<Commentsection> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             Divider()
           ],
         ));

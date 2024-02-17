@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
             CurrentUser.enrollNo = data['enrollNo'];
             CurrentUser.college = data['college'];
             CurrentUser.branch = data['branch'] ?? "";
-            CurrentUser.following = List<String>.from(data['following']) ?? [];
+            CurrentUser.following = List<String>.from(data['following'] ?? []);
             Navigator.pop(context);
             Navigator.push(
                 context, MaterialPageRoute(builder: (context) => BottomBar()));
@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Center(
         child: Text(
-          "LinkUSS",
+          "LinkIPU",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
       ),

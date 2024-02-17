@@ -13,8 +13,6 @@ import 'package:linkuss/utils/constants.dart';
 import 'package:linkuss/widgets/buttons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../currentUser.dart';
-
 class UserProfilePage extends ConsumerStatefulWidget {
   const UserProfilePage({super.key});
 
@@ -32,7 +30,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(vsync: this, length: 2);
+    tabController = TabController(vsync: this, length: 1);
     data = getProfile();
   }
 
@@ -72,6 +70,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
       body: FutureBuilder(
           future: data,
           builder: (context, snapshot) {
+            
             if (snapshot.connectionState == ConnectionState.done) {
               if (snapshot.hasData) {
                 return CustomScrollView(slivers: [
@@ -103,6 +102,14 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                                     TextStyle(fontSize: 16, color: kiconColor),
                               ),
                               SizedBox(
+                                height: 5,
+                              ),
+                              Text(
+                                '${snapshot.data['enrollNo']}',
+                                style:
+                                    TextStyle(fontSize: 16, color: kiconColor),
+                              ),
+                              SizedBox(
                                 height: 10,
                               ),
                             ],
@@ -112,71 +119,66 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                             callback: () {},
                             title:
                                 '${snapshot.data['following'] != null ? List.from(snapshot.data['following']).length : 0} Societies'),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(15),
-                              // boxShadow: [
-                              //   BoxShadow(
-                              //     color: Colors.black12,
-                              //     blurRadius: 3.0,
-                              //     // spreadRadius: 0.5,
-                              //     offset: Offset(1.0, 1.0),
-                              //   )
-                              // ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
+                                SizedBox(
+                                  height: 10,
                                 ),
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      vertical: 5, horizontal: 5),
-                                  child: TabBar(
-                                    onTap: (index) {
-                                      ref.read(tabProvider.notifier).state =
-                                          index;
-                                    },
-                                    tabs: [
-                                      Tab(
+                        Container(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 5, horizontal: 5),
+                                child: TabBar(
+                                  onTap: (index) {
+                                    ref.read(tabProvider.notifier).state =
+                                        index;
+                                  },
+                                  tabAlignment: TabAlignment.center,
+                                  tabs: [
+                                    Tab(
+                                      child: Container(
+                                        padding: EdgeInsets.only(left: 20, right: 20),
                                         child: Text(
                                           'Liked Posts',
                                           style: TextStyle(
+                                            
                                               color: tabController.index == 0
                                                   ? Colors.white
                                                   : Colors.black),
                                         ),
                                       ),
-                                      Tab(
-                                        child: Text(
-                                          'Comments',
-                                          style: TextStyle(
-                                              color: tabController.index == 1
-                                                  ? Colors.white
-                                                  : Colors.black),
-                                        ),
-                                      ),
-                                    ],
-                                    indicator: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: MyColors.primary,
                                     ),
-                                    controller: tabController,
-                                    isScrollable: true,
-                                    labelPadding: EdgeInsets.symmetric(
-                                        horizontal: 40, vertical: 0),
+                                    // Tab(
+                                    //   child: Text(
+                                    //     'Comments',
+                                    //     style: TextStyle(
+                                    //         color: tabController.index == 1
+                                    //             ? Colors.white
+                                    //             : Colors.black),
+                                    //   ),
+                                    // ),
+                                  ],
+                                  indicator: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(15),
+                                    color: MyColors.primary,
                                   ),
+                                  controller: tabController,
+                                  isScrollable: true,
+                                  // labelPadding: EdgeInsets.symmetric(
+                                  //     horizontal: 40, vertical: 0),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                        ref.watch(tabProvider) == 0
-                            ? Padding(
+                        // ref.watch(tabProvider) == 0
+                        //     ?
+                            Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: GridView.builder(
                                     padding: EdgeInsets.zero,
@@ -187,9 +189,9 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                                         posts != null ? posts!.docs.length : 0,
                                     gridDelegate:
                                         const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 6,
-                                      mainAxisSpacing: 6,
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
                                     ),
                                     itemBuilder: (context, index) {
                                       final data = Map<String, dynamic>.from(
@@ -198,9 +200,9 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                                       return InkWell(
                                         onTap: () {
                                           Navigator.push(
-                                           context,
-                                           MaterialPageRoute(
-                                           builder: (context) => Commentsection(data['UID'])));
+                                          context,
+                                          MaterialPageRoute(
+                                          builder: (context) => Commentsection(data['UID'])));
                                         },
                                         child: Container(
                                           child: ClipRRect(
@@ -220,34 +222,33 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage>
                                       );
                                     }),
                               )
-                            : Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: GridView.builder(
-                                    padding: EdgeInsets.zero,
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: 18,
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 6,
-                                      mainAxisSpacing: 6,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      return Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.blueGrey,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                      );
-                                    }),
-                              ),
+                            // : Padding(
+                            //     padding: const EdgeInsets.all(8.0),
+                            //     child: GridView.builder(
+                            //         padding: EdgeInsets.zero,
+                            //         shrinkWrap: true,
+                            //         physics:
+                            //             const NeverScrollableScrollPhysics(),
+                            //         itemCount: 18,
+                            //         gridDelegate:
+                            //             const SliverGridDelegateWithFixedCrossAxisCount(
+                            //           crossAxisCount: 3,
+                            //           crossAxisSpacing: 6,
+                            //           mainAxisSpacing: 6,
+                            //         ),
+                            //         itemBuilder: (context, index) {
+                            //           return Container(
+                            //             decoration: BoxDecoration(
+                            //               color: Colors.blueGrey,
+                            //               borderRadius:
+                            //                   BorderRadius.circular(12),
+                            //             ),
+                            //           );
+                            //         }),
+                            //   ),
                       ],
                     ),
                   )
-                  // Slive
                 ]);
               } else {
                 return Center(
@@ -385,7 +386,9 @@ class CustomSliverDelegate extends SliverPersistentHeaderDelegate {
                   ),
                 ),
               ),
-              onTap: () {},
+              onTap: () {
+                
+              },
             ),
           ),
           Positioned(

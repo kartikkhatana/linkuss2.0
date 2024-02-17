@@ -48,6 +48,8 @@ dependencies:
   shared_preferences: ^2.0.18
   uuid: ^3.0.7
   url_launcher: ^6.1.11
+  image_picker: ^1.0.7
+  firebase_storage:
 
 dev_dependencies:
   flutter_test:
